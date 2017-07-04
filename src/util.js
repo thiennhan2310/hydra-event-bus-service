@@ -70,7 +70,35 @@ const updatePatterns = (serviceTag) => {
   });
 };
 
-const updateAllPatterns = () => {
+const openListener = () => {
+  _updateAllPatterns().then(() => {
+    hydra.on('message', (umf) => {
+        if (umf.typ !== 'event-bus')
+          return;
+
+        const body = umf.bdy;
+
+        if (body.type == 'register')
+          registerPatternsForService(body.patterns, body.serviceTag);
+
+        if (body.type == 'unregister')
+          unregisterPatternsForService(body.patterns, body.serviceTag);
+
+        if (body.type == 'changed') {
+          const frmParts = umf.frm.split('@');
+          if (frmParts.length != 2 || frmParts[0] != hydra.instanceID) {
+            updatePatterns(body.serviceTag);
+          }
+        }
+
+        if (body.type == 'event')
+          dispatchEventUMF(umf);
+      }
+    );
+  })
+}
+
+const _updateAllPatterns = () => {
   const patternStartPos = registryPreKey.length + 1;
   return hydra.redisdb.keysAsync(`${registryPreKey}:*`).map((pattern) => {
     return pattern.substring(patternStartPos);
@@ -152,10 +180,6 @@ const stringifyPattern = (pattern) => {
 }
 
 module.exports = {
-  dispatchEventUMF,
   dispatchEvent,
-  updateAllPatterns,
-  registerPatternsForService,
-  unregisterPatternsForService,
-  updatePatterns,
+  openListener,
 }

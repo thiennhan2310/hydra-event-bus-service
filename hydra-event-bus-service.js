@@ -37,31 +37,7 @@ config
   .then(serviceInfo => {
     let logEntry = `Starting ${config.hydra.serviceName} (v.${config.version})`;
     hydra.sendToHealthLog('info', logEntry);
-    util.updateAllPatterns();
-
-    hydra.on('message', (umf) => {
-      if (umf.typ !== 'event-bus')
-        return;
-
-      const body = umf.bdy;
-
-      if (body.type == 'register')
-        util.registerPatternsForService(body.patterns, body.serviceTag);
-
-      if (body.type == 'unregister')
-        util.unregisterPatternsForService(body.patterns, body.serviceTag);
-
-      if (body.type == 'changed') {
-        const frmParts = umf.frm.split('@');
-        if (frmParts.length != 2 || frmParts[0] != hydra.instanceID) {
-          util.updatePatterns(body.serviceTag);
-        }
-      }
-
-      if (body.type == 'event')
-        util.dispatchEventUMF(umf);
-      }
-    );
+    util.openListener();
   })
   .catch((err) => {
     hydra.sendToHealthLog('error', err);
